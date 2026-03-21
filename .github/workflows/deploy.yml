@@ -3,11 +3,22 @@ name: Deploy to GitHub Pages
 on:
   push:
     branches: ["main"]
+  # Allows manual triggering for debugging
+  workflow_dispatch:
+
+# Allow only one concurrent deployment
+concurrency:
+  group: "pages"
+  cancel-in-progress: false
 
 permissions:
-  contents: read
+  contents: write
   pages: write
   id-token: write
+
+# Opt into Node.js 24 to resolve deprecation warnings in your logs
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
 jobs:
   build:
@@ -15,11 +26,15 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          # Fetches all history for all branches and tags to resolve Git 128 errors
+          fetch-depth: 0 
+          persist-credentials: false
 
       - name: Set up Node
         uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: '24'
           cache: 'npm'
 
       - name: Install dependencies
@@ -36,6 +51,7 @@ jobs:
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:
+          # Standard Vite build output directory
           path: './dist'
 
   deploy:
