@@ -1,0 +1,1 @@
+google-genailangchain-communitylangchain-text-splittersunstructuredmarkdownpython-dotenv

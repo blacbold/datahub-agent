@@ -1,0 +1,32 @@
+DataHub Specialist Agent
+
+This project is an agentic AI assistant designed to help users navigate DataHub documentation and generate validated ingestion recipes.
+
+🚀 Quick Start
+
+Clone the DataHub docs:
+
+git clone [https://github.com/datahub-project/datahub.git](https://github.com/datahub-project/datahub.git)
+
+
+Install Dependencies:
+
+pip install -r requirements.txt
+
+
+Set your API Key:
+Create a file named .env in this folder and add your key:
+
+GEMINI_API_KEY=your_actual_key_here
+
+
+Run the Agent:
+
+python ingest_docs.py
+
+
+🛠️ How it Works
+
+Librarian Phase: Processes 300+ Markdown files into 3,000+ searchable chunks.
+
+Agentic Phase: Uses Gemini 2.0 Flash with automatic tool calling to search context and self-validate YAML code.
