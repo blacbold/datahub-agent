@@ -30,9 +30,16 @@ jobs:
           # Fetches all history for all branches and tags to resolve Git 128 errors
           fetch-depth: 0 
           persist-credentials: false
-          # Explicitly set submodules to false if you are encountering 
-          # "No url found for submodule path" and don't need 'datahub'
+          # Explicitly set submodules to false to avoid issues with missing .gitmodules
           submodules: false 
+
+      - name: Fix Submodule Index Issue
+        # This step manually removes the datahub reference from the Git index 
+        # in the runner environment if it exists without a .gitmodules entry.
+        run: |
+          if git ls-files --stage | grep -q "datahub"; then
+            git rm --cached datahub || true
+          fi
 
       - name: Set up Node
         uses: actions/setup-node@v4
