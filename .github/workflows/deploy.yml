@@ -34,28 +34,20 @@ jobs:
           submodules: false 
 
       - name: Force Purge Ghost Submodule
-        # This is a more exhaustive cleanup script to handle persistent submodule errors
+        # Exhaustive cleanup for persistent submodule errors
         run: |
           git config --global user.email "action@github.com"
           git config --global user.name "GitHub Action"
           
-          echo "Checking for ghost submodule references..."
-          
-          # 1. Force remove 'datahub' from the Git index if it exists in any form
           if git ls-files --stage | grep -q "datahub"; then
-            echo "Removing 'datahub' from git index..."
             git rm -r --cached datahub || true
           fi
           
-          # 2. Unregister the submodule from the local git config
           git config --local --unset-all submodule.datahub.url || true
           git config --local --remove-section submodule.datahub || true
-          
-          # 3. Clean up the internal git modules directory and local folder
           rm -rf .git/modules/datahub || true
           rm -rf datahub || true
           
-          # 4. Check for and remove any .gitmodules entries if they still exist
           if [ -f .gitmodules ]; then
             sed -i '/\[submodule "datahub"\]/,/url =/d' .gitmodules || true
             if [ ! -s .gitmodules ]; then
@@ -68,47 +60,47 @@ jobs:
         with:
           node-version: '24'
           cache: 'npm'
+          # Path to the lockfile in the nested directory for caching
+          cache-dependency-path: 'datahub-agent/datahub-agent/package-lock.json'
 
       - name: Check Project Structure
-        # Diagnostic step to debug the EJSONPARSE error
+        # Diagnostic step to debug the EJSONPARSE error and find files
         run: |
-          echo "Listing files in root:"
-          ls -F
-          if [ -f package.json ]; then
-            echo "--- START OF package.json ---"
-            cat package.json
-            echo ""
-            echo "--- END OF package.json ---"
-            echo "Validating JSON syntax..."
+          echo "Listing files in the nested folder:"
+          ls -F datahub-agent/datahub-agent/
+          
+          if [ -f datahub-agent/datahub-agent/package.json ]; then
+            echo "Validating package.json syntax in nested folder..."
             node -e "
             try {
               const fs = require('fs');
-              const content = fs.readFileSync('package.json', 'utf8');
+              const content = fs.readFileSync('datahub-agent/datahub-agent/package.json', 'utf8');
               JSON.parse(content);
-              console.log('JSON is valid');
+              console.log('package.json JSON is valid');
             } catch (e) {
               console.error('CRITICAL JSON ERROR: Your package.json is not valid JSON.');
               console.error('Message:', e.message);
-              console.error('Tip: Ensure the file starts with { and ends with }, has no duplicate keys, and uses commas between properties.');
               process.exit(1);
             }
             "
           else
-            echo "ERROR: package.json not found!"
+            echo "ERROR: package.json not found in datahub-agent/datahub-agent/!"
             exit 1
           fi
 
       - name: Install dependencies
+        # Run npm install inside the directory containing package.json
+        working-directory: datahub-agent/datahub-agent
         run: npm install
 
       - name: Build
+        # Run build inside the directory containing the source code and index.html
+        working-directory: datahub-agent/datahub-agent
         run: |
-          # Verify if build script exists before running
           if grep -q '"build":' package.json; then
             npm run build
           else
             echo "ERROR: No 'build' script found in package.json."
-            echo "Please ensure package.json contains: \"scripts\": { \"build\": \"vite build\" }"
             exit 1
           fi
         env:
@@ -121,7 +113,7 @@ jobs:
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          # Standard Vite build output directory
+          # This assumes vite.config.js (below) outputs to the root dist folder
           path: './dist'
 
   deploy:
