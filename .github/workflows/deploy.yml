@@ -109,12 +109,18 @@ jobs:
           # 1. Aggressive search and placement for index.html
           if [ ! -f index.html ]; then
             echo "index.html not found in build directory. Searching entire repo..."
-            # Find any index.html that isn't in node_modules or a dist folder
             FOUND_INDEX=$(find $GITHUB_WORKSPACE -name "index.html" -not -path "*/node_modules/*" -not -path "*/dist/*" | head -n 1)
             
             if [ -n "$FOUND_INDEX" ]; then
               echo "Found index.html at $FOUND_INDEX. Copying it to $(pwd) to satisfy Vite..."
               cp "$FOUND_INDEX" .
+              
+              # Fix potential path mismatch: 
+              # If index.html was in src/ it might reference /main.jsx instead of /src/main.jsx
+              # Or if it was moved to root, references to /src/main.jsx might need to be main.jsx
+              # This ensures absolute-style paths starting with /src/ are handled by Vite
+              sed -i 's|src="/src/|src="./src/|g' index.html || true
+              sed -i 's|src="/main.jsx"|src="./src/main.jsx"|g' index.html || true
             else
               echo "ERROR: Could not find any index.html in the repository."
               exit 1
@@ -127,7 +133,6 @@ jobs:
           
           # 3. Execute build
           if grep -q '"build":' package.json; then
-            # We use --emptyOutDir to ensure a clean build regardless of config
             npm run build -- --emptyOutDir
           else
             echo "ERROR: No 'build' script found in package.json."
