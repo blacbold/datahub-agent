@@ -57,7 +57,7 @@ jobs:
           fi
 
       - name: Discover Project Root
-        # Dynamically find where package.json lives to avoid hardcoded path errors
+        # Dynamically find where package.json lives
         id: info
         run: |
           PKG_PATH=$(find . -name "package.json" -not -path "*/node_modules/*" | head -n 1)
@@ -74,11 +74,9 @@ jobs:
         with:
           node-version: '24'
           cache: 'npm'
-          # Use the discovered path for caching the lockfile
           cache-dependency-path: '${{ steps.info.outputs.root }}/**/package-lock.json'
 
       - name: Check Project Structure
-        # Diagnostic step to debug syntax and file location based on discovery
         run: |
           ROOT_DIR="${{ steps.info.outputs.root }}"
           echo "Listing files in discovered root ($ROOT_DIR):"
@@ -99,12 +97,10 @@ jobs:
           "
 
       - name: Install dependencies
-        # Use the dynamically discovered root
         working-directory: ${{ steps.info.outputs.root }}
         run: npm install
 
       - name: Build
-        # Use the dynamically discovered root
         working-directory: ${{ steps.info.outputs.root }}
         run: |
           if grep -q '"build":' package.json; then
@@ -123,10 +119,9 @@ jobs:
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          # Standard Vite build output directory
-          # Note: If your vite.config.js uses a custom outDir (like ../../dist), 
-          # make sure this path aligns with where the files actually end up.
-          path: './dist'
+          # IMPORTANT: Since your project is at the root (.), Vite outputs to ./dist by default.
+          # We use the discovered root to find the dist folder correctly.
+          path: '${{ steps.info.outputs.root }}/dist'
 
   deploy:
     environment:
