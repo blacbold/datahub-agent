@@ -80,7 +80,19 @@ jobs:
             echo ""
             echo "--- END OF package.json ---"
             echo "Validating JSON syntax..."
-            node -e "try { JSON.parse(require('fs').readFileSync('package.json', 'utf8')); console.log('JSON is valid'); } catch (e) { console.error('JSON Error:', e.message); process.exit(1); }"
+            node -e "
+            try {
+              const fs = require('fs');
+              const content = fs.readFileSync('package.json', 'utf8');
+              JSON.parse(content);
+              console.log('JSON is valid');
+            } catch (e) {
+              console.error('CRITICAL JSON ERROR: Your package.json is not valid JSON.');
+              console.error('Message:', e.message);
+              console.error('Tip: Ensure the file starts with { and ends with }, has no duplicate keys, and uses commas between properties.');
+              process.exit(1);
+            }
+            "
           else
             echo "ERROR: package.json not found!"
             exit 1
