@@ -70,15 +70,19 @@ jobs:
           cache: 'npm'
 
       - name: Check Project Structure
-        # Diagnostic step to see why npm run build is failing
+        # Diagnostic step to debug the EJSONPARSE error
         run: |
-          echo "Listing files in current directory:"
-          ls -R
+          echo "Listing files in root:"
+          ls -F
           if [ -f package.json ]; then
-            echo "Content of package.json:"
+            echo "--- START OF package.json ---"
             cat package.json
+            echo ""
+            echo "--- END OF package.json ---"
+            echo "Validating JSON syntax..."
+            node -e "try { JSON.parse(require('fs').readFileSync('package.json', 'utf8')); console.log('JSON is valid'); } catch (e) { console.error('JSON Error:', e.message); process.exit(1); }"
           else
-            echo "ERROR: package.json not found in root directory!"
+            echo "ERROR: package.json not found!"
             exit 1
           fi
 
@@ -92,7 +96,7 @@ jobs:
             npm run build
           else
             echo "ERROR: No 'build' script found in package.json."
-            echo "Please add '\"build\": \"vite build\"' to your package.json scripts."
+            echo "Please ensure package.json contains: \"scripts\": { \"build\": \"vite build\" }"
             exit 1
           fi
         env:
