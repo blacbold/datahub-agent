@@ -122,7 +122,7 @@ jobs:
         uses: actions/upload-pages-artifact@v3
         with:
           # Standard Vite build output directory
-          # If using custom root in vite.config.js, this usually maps to repo root ./dist
+          # Note: If your vite.config.js uses a custom outDir, adjust this path.
           path: './dist'
 
   deploy:
