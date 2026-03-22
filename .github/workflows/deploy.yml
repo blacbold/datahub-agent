@@ -48,7 +48,6 @@ jobs:
           fi
           
           # 2. Unregister the submodule from the local git config
-          # We use a broader approach to ensure no URL is expected
           git config --local --unset-all submodule.datahub.url || true
           git config --local --remove-section submodule.datahub || true
           
@@ -59,7 +58,6 @@ jobs:
           # 4. Check for and remove any .gitmodules entries if they still exist
           if [ -f .gitmodules ]; then
             sed -i '/\[submodule "datahub"\]/,/url =/d' .gitmodules || true
-            # If the file is now empty, remove it entirely
             if [ ! -s .gitmodules ]; then
                rm .gitmodules
             fi
@@ -71,11 +69,32 @@ jobs:
           node-version: '24'
           cache: 'npm'
 
+      - name: Check Project Structure
+        # Diagnostic step to see why npm run build is failing
+        run: |
+          echo "Listing files in current directory:"
+          ls -R
+          if [ -f package.json ]; then
+            echo "Content of package.json:"
+            cat package.json
+          else
+            echo "ERROR: package.json not found in root directory!"
+            exit 1
+          fi
+
       - name: Install dependencies
         run: npm install
 
       - name: Build
-        run: npm run build
+        run: |
+          # Verify if build script exists before running
+          if grep -q '"build":' package.json; then
+            npm run build
+          else
+            echo "ERROR: No 'build' script found in package.json."
+            echo "Please add '\"build\": \"vite build\"' to your package.json scripts."
+            exit 1
+          fi
         env:
           VITE_GEMINI_API_KEY: ${{ secrets.VITE_GEMINI_API_KEY }}
           NODE_ENV: production
