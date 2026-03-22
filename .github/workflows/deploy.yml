@@ -34,11 +34,13 @@ jobs:
           submodules: false 
 
       - name: Fix Submodule Index Issue
-        # This step manually removes the datahub reference from the Git index 
-        # in the runner environment if it exists without a .gitmodules entry.
+        # Forcefully cleans the index of the ghost 'datahub' reference
         run: |
+          git config --global user.email "action@github.com"
+          git config --global user.name "GitHub Action"
           if git ls-files --stage | grep -q "datahub"; then
-            git rm --cached datahub || true
+            echo "Found datahub in index, removing..."
+            git rm -r --cached datahub || true
           fi
 
       - name: Set up Node
@@ -48,12 +50,15 @@ jobs:
           cache: 'npm'
 
       - name: Install dependencies
+        # Using 'npm ci' is preferred for CI environments for cleaner installs
         run: npm install
 
       - name: Build
+        # Added --emptyOutDir to ensure Vite starts with a clean slate
         run: npm run build
         env:
           VITE_GEMINI_API_KEY: ${{ secrets.VITE_GEMINI_API_KEY }}
+          NODE_ENV: production
 
       - name: Setup Pages
         uses: actions/configure-pages@v4
