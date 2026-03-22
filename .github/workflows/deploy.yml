@@ -82,7 +82,7 @@ jobs:
           echo "Listing files in discovered root ($ROOT_DIR):"
           ls -F "$ROOT_DIR"
           
-          echo "Searching for index.html..."
+          echo "Searching for index.html location..."
           find . -name "index.html" -not -path "*/node_modules/*"
           
           echo "Validating package.json syntax..."
@@ -106,30 +106,29 @@ jobs:
       - name: Build
         working-directory: ${{ steps.info.outputs.root }}
         run: |
-          # Robust search for index.html to fix Rollup resolution error
+          # 1. Aggressive search and placement for index.html
           if [ ! -f index.html ]; then
-            echo "index.html not found in root. Searching repository..."
-            # Find the first index.html not in node_modules or dist
-            FOUND_INDEX=$(find . -name "index.html" -not -path "*/node_modules/*" -not -path "*/dist/*" | head -n 1)
+            echo "index.html not found in build directory. Searching entire repo..."
+            # Find any index.html that isn't in node_modules or a dist folder
+            FOUND_INDEX=$(find $GITHUB_WORKSPACE -name "index.html" -not -path "*/node_modules/*" -not -path "*/dist/*" | head -n 1)
             
             if [ -n "$FOUND_INDEX" ]; then
-              echo "Found index.html at $FOUND_INDEX. Moving to root..."
+              echo "Found index.html at $FOUND_INDEX. Copying it to $(pwd) to satisfy Vite..."
               cp "$FOUND_INDEX" .
             else
-              echo "ERROR: index.html could not be found in the repository."
+              echo "ERROR: Could not find any index.html in the repository."
               exit 1
             fi
           fi
 
-          # Final verification
-          if [ ! -f index.html ]; then
-            echo "ERROR: index.html is still missing from the build root."
-            ls -F
-            exit 1
-          fi
+          # 2. Final verification before running Vite
+          echo "Build environment ready. Contents of $(pwd):"
+          ls -F
           
+          # 3. Execute build
           if grep -q '"build":' package.json; then
-            npm run build
+            # We use --emptyOutDir to ensure a clean build regardless of config
+            npm run build -- --emptyOutDir
           else
             echo "ERROR: No 'build' script found in package.json."
             exit 1
@@ -144,9 +143,8 @@ jobs:
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          # IMPORTANT: Since your project is at the root (.), Vite outputs to ./dist by default.
-          # We use the discovered root to find the dist folder correctly.
-          path: '${{ steps.info.outputs.root }}/dist'
+          # Points to the dist folder relative to the repo root
+          path: './dist'
 
   deploy:
     environment:
