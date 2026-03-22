@@ -40,6 +40,7 @@ jobs:
           git config --global user.name "GitHub Action"
           
           if git ls-files --stage | grep -q "datahub"; then
+            echo "Removing 'datahub' from git index..."
             git rm -r --cached datahub || true
           fi
           
@@ -60,8 +61,9 @@ jobs:
         with:
           node-version: '24'
           cache: 'npm'
-          # Path to the lockfile in the nested directory for caching
-          cache-dependency-path: 'datahub-agent/datahub-agent/package-lock.json'
+          # Updated to use a wildcard pattern to ensure the lockfile is found correctly 
+          # even if there are slight variations in the path or filename.
+          cache-dependency-path: '**/package-lock.json'
 
       - name: Check Project Structure
         # Diagnostic step to debug the EJSONPARSE error and find files
