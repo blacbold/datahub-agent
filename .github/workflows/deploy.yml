@@ -106,9 +106,15 @@ jobs:
       - name: Build
         working-directory: ${{ steps.info.outputs.root }}
         run: |
+          # If index.html is in src/ but not root, copy it to root for Vite
+          if [ ! -f index.html ] && [ -f src/index.html ]; then
+            echo "Moving index.html from src/ to root for build..."
+            cp src/index.html .
+          fi
+
           # Verify if index.html exists in the current working directory
           if [ ! -f index.html ]; then
-            echo "ERROR: index.html not found in $(pwd)"
+            echo "ERROR: index.html not found in $(pwd) or src/"
             echo "Vite requires index.html to be in the project root."
             echo "Current directory contents:"
             ls -F
