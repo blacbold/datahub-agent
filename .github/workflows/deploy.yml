@@ -82,6 +82,9 @@ jobs:
           echo "Listing files in discovered root ($ROOT_DIR):"
           ls -F "$ROOT_DIR"
           
+          echo "Searching for index.html..."
+          find . -name "index.html" -not -path "*/node_modules/*"
+          
           echo "Validating package.json syntax..."
           node -e "
           try {
@@ -103,6 +106,15 @@ jobs:
       - name: Build
         working-directory: ${{ steps.info.outputs.root }}
         run: |
+          # Verify if index.html exists in the current working directory
+          if [ ! -f index.html ]; then
+            echo "ERROR: index.html not found in $(pwd)"
+            echo "Vite requires index.html to be in the project root."
+            echo "Current directory contents:"
+            ls -F
+            exit 1
+          fi
+          
           if grep -q '"build":' package.json; then
             npm run build
           else
