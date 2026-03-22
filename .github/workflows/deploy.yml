@@ -56,48 +56,54 @@ jobs:
             fi
           fi
 
+      - name: Discover Project Root
+        # Dynamically find where package.json lives to avoid path errors
+        id: info
+        run: |
+          PKG_PATH=$(find . -name "package.json" -not -path "*/node_modules/*" | head -n 1)
+          if [ -z "$PKG_PATH" ]; then
+            echo "ERROR: Could not find package.json anywhere in the repository!"
+            exit 1
+          fi
+          PROJECT_ROOT=$(dirname "$PKG_PATH")
+          echo "Found package.json in: $PROJECT_ROOT"
+          echo "root=$PROJECT_ROOT" >> $GITHUB_OUTPUT
+
       - name: Set up Node
         uses: actions/setup-node@v4
         with:
           node-version: '24'
           cache: 'npm'
-          # Updated to use a wildcard pattern to ensure the lockfile is found correctly 
-          # even if there are slight variations in the path or filename.
-          cache-dependency-path: '**/package-lock.json'
+          # Use the discovered path for caching
+          cache-dependency-path: '${{ steps.info.outputs.root }}/**/package-lock.json'
 
       - name: Check Project Structure
-        # Diagnostic step to debug the EJSONPARSE error and find files
+        # Diagnostic step to debug syntax and file location
         run: |
-          echo "Listing files in the nested folder:"
-          ls -F datahub-agent/datahub-agent/
+          ROOT_DIR="${{ steps.info.outputs.root }}"
+          echo "Listing files in discovered root ($ROOT_DIR):"
+          ls -F "$ROOT_DIR"
           
-          if [ -f datahub-agent/datahub-agent/package.json ]; then
-            echo "Validating package.json syntax in nested folder..."
-            node -e "
-            try {
-              const fs = require('fs');
-              const content = fs.readFileSync('datahub-agent/datahub-agent/package.json', 'utf8');
-              JSON.parse(content);
-              console.log('package.json JSON is valid');
-            } catch (e) {
-              console.error('CRITICAL JSON ERROR: Your package.json is not valid JSON.');
-              console.error('Message:', e.message);
-              process.exit(1);
-            }
-            "
-          else
-            echo "ERROR: package.json not found in datahub-agent/datahub-agent/!"
-            exit 1
-          fi
+          echo "Validating package.json syntax..."
+          node -e "
+          try {
+            const fs = require('fs');
+            const content = fs.readFileSync('$ROOT_DIR/package.json', 'utf8');
+            JSON.parse(content);
+            console.log('package.json JSON is valid');
+          } catch (e) {
+            console.error('CRITICAL JSON ERROR: Your package.json is not valid JSON.');
+            console.error('Message:', e.message);
+            process.exit(1);
+          }
+          "
 
       - name: Install dependencies
-        # Run npm install inside the directory containing package.json
-        working-directory: datahub-agent/datahub-agent
+        working-directory: ${{ steps.info.outputs.root }}
         run: npm install
 
       - name: Build
-        # Run build inside the directory containing the source code and index.html
-        working-directory: datahub-agent/datahub-agent
+        working-directory: ${{ steps.info.outputs.root }}
         run: |
           if grep -q '"build":' package.json; then
             npm run build
@@ -115,7 +121,8 @@ jobs:
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          # This assumes vite.config.js (below) outputs to the root dist folder
+          # Standard Vite build output directory
+          # If using custom root in vite.config.js, this usually maps to repo root ./dist
           path: './dist'
 
   deploy:
