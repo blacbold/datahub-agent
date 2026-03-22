@@ -33,24 +33,27 @@ jobs:
           # Explicitly set submodules to false to avoid issues with missing .gitmodules
           submodules: false 
 
-      - name: Purge Ghost Submodule Reference
-        # This forcefully removes datahub from the git index and local config
-        # to prevent 'No url found for submodule path' errors.
+      - name: Force Purge Ghost Submodule
+        # If the index is corrupted with a submodule reference but no .gitmodules,
+        # we need to remove it from the index and unregister it from git config.
         run: |
           git config --global user.email "action@github.com"
           git config --global user.name "GitHub Action"
           
-          # Remove from index if present
+          echo "Checking for ghost submodule 'datahub'..."
+          
+          # 1. Remove from the Git index (cached paths)
           if git ls-files --stage | grep -q "datahub"; then
-            echo "Removing datahub from git index..."
+            echo "Removing 'datahub' from git index..."
             git rm -r --cached datahub || true
           fi
           
-          # Remove from git config if present
-          git config --unset-all submodule.datahub.url || true
+          # 2. Clean up any remaining configuration entries
+          git config --local --remove-section submodule.datahub || true
           
-          # Clean up internal git paths if they exist
-          rm -rf .git/modules/datahub || true
+          # 3. Physically remove any leftover directories in the runner
+          rm -rf datahub
+          rm -rf .git/modules/datahub
 
       - name: Set up Node
         uses: actions/setup-node@v4
