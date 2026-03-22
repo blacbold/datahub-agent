@@ -106,17 +106,24 @@ jobs:
       - name: Build
         working-directory: ${{ steps.info.outputs.root }}
         run: |
-          # If index.html is in src/ but not root, copy it to root for Vite
-          if [ ! -f index.html ] && [ -f src/index.html ]; then
-            echo "Moving index.html from src/ to root for build..."
-            cp src/index.html .
+          # Robust search for index.html to fix Rollup resolution error
+          if [ ! -f index.html ]; then
+            echo "index.html not found in root. Searching repository..."
+            # Find the first index.html not in node_modules or dist
+            FOUND_INDEX=$(find . -name "index.html" -not -path "*/node_modules/*" -not -path "*/dist/*" | head -n 1)
+            
+            if [ -n "$FOUND_INDEX" ]; then
+              echo "Found index.html at $FOUND_INDEX. Moving to root..."
+              cp "$FOUND_INDEX" .
+            else
+              echo "ERROR: index.html could not be found in the repository."
+              exit 1
+            fi
           fi
 
-          # Verify if index.html exists in the current working directory
+          # Final verification
           if [ ! -f index.html ]; then
-            echo "ERROR: index.html not found in $(pwd) or src/"
-            echo "Vite requires index.html to be in the project root."
-            echo "Current directory contents:"
+            echo "ERROR: index.html is still missing from the build root."
             ls -F
             exit 1
           fi
