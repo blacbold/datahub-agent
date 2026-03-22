@@ -34,26 +34,36 @@ jobs:
           submodules: false 
 
       - name: Force Purge Ghost Submodule
-        # If the index is corrupted with a submodule reference but no .gitmodules,
-        # we need to remove it from the index and unregister it from git config.
+        # This is a more exhaustive cleanup script to handle persistent submodule errors
         run: |
           git config --global user.email "action@github.com"
           git config --global user.name "GitHub Action"
           
-          echo "Checking for ghost submodule 'datahub'..."
+          echo "Checking for ghost submodule references..."
           
-          # 1. Remove from the Git index (cached paths)
+          # 1. Force remove 'datahub' from the Git index if it exists in any form
           if git ls-files --stage | grep -q "datahub"; then
             echo "Removing 'datahub' from git index..."
             git rm -r --cached datahub || true
           fi
           
-          # 2. Clean up any remaining configuration entries
+          # 2. Unregister the submodule from the local git config
+          # We use a broader approach to ensure no URL is expected
+          git config --local --unset-all submodule.datahub.url || true
           git config --local --remove-section submodule.datahub || true
           
-          # 3. Physically remove any leftover directories in the runner
-          rm -rf datahub
-          rm -rf .git/modules/datahub
+          # 3. Clean up the internal git modules directory and local folder
+          rm -rf .git/modules/datahub || true
+          rm -rf datahub || true
+          
+          # 4. Check for and remove any .gitmodules entries if they still exist
+          if [ -f .gitmodules ]; then
+            sed -i '/\[submodule "datahub"\]/,/url =/d' .gitmodules || true
+            # If the file is now empty, remove it entirely
+            if [ ! -s .gitmodules ]; then
+               rm .gitmodules
+            fi
+          fi
 
       - name: Set up Node
         uses: actions/setup-node@v4
