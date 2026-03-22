@@ -1,26 +1,36 @@
-"scripts": {
-  "dev": "vite",
-  "build": "vite build",
-  "preview": "vite preview"
-  "license": "MIT"
-  "description": "A concise description of `datahub-agent`."
-  "homepage": "https://github.com/blacbold/datahub-agent"
+{
+  "name": "datahub-agent",
+  "version": "1.0.0",
+  "description": "A concise description of `datahub-agent`.",
+  "license": "MIT",
+  "homepage": "https://github.com/blacbold/datahub-agent",
   "repository": {
-  "type": "git",
-  "url": "https://github.com/blacbold/datahub-agent.git"
-},
-"bugs": {
-  "url": "https://github.com/blacbold/datahub-agent/issues"
-}
+    "type": "git",
+    "url": "https://github.com/blacbold/datahub-agent.git"
+  },
+  "bugs": {
+    "url": "https://github.com/blacbold/datahub-agent/issues"
+  },
+  "keywords": [
+    "datahub",
+    "agent",
+    "react",
+    "vite"
+  ],
   "scripts": {
-  "format": "prettier --write .",
-  "type-check": "tsc --noEmit",
-  "test": "vitest run",
-  "test:watch": "vitest watch"
-}
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "format": "prettier --write .",
+    "type-check": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest watch"
+  },
+  "dependencies": {
+    "vite": "^5.0.0"
+  },
   "peerDependencies": {
-  "react": "^19.0.0",
-  "react-dom": "^19.0.0"
-}
-  "keywords": ["datahub", "agent", "react", "vite"]
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0"
+  }
 }
